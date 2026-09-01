@@ -13,8 +13,6 @@ This guide covers a basic installation with:
 
 The commands are intended to be run from the Arch Linux installation environment unless stated otherwise.
 
-> **Warning:** Partitioning and formatting a drive will destroy existing data on the selected partitions. Verify the target drive before continuing.
-
 ## Keyboard and console font
 
 Load the desired console keymap:
