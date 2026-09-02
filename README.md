@@ -1,6 +1,6 @@
 # Arch Linux Install Guide
 
-A minimal Arch Linux installation guide using GRUB and NetworkManager.
+A minimal Arch Linux installation guide.
 
 This guide supports:
 
@@ -13,8 +13,6 @@ This guide supports:
 - AMD or Intel CPUs
 
 The commands are intended to be run from the Arch Linux installation environment unless stated otherwise.
-
-> **Warning:** Partitioning and formatting a drive will destroy existing data on the selected partitions. Verify the target drive before continuing.
 
 ## Keyboard and console font
 
