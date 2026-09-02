@@ -126,18 +126,7 @@ swapon /dev/sdX2
 For an AMD CPU:
 
 ```sh
-pacstrap -K /mnt \
-    amd-ucode \
-    base \
-    base-devel \
-    efibootmgr \
-    grub \
-    linux \
-    linux-firmware \
-    networkmanager \
-    neovim \
-    sof-firmware \
-    sudo
+pacstrap -K /mnt amd-ucode base base-devel efibootmgr grub linux linux-firmware networkmanager neovim sof-firmware
 ```
 
 For an Intel CPU, replace:
@@ -321,10 +310,7 @@ This guide mounts the EFI System Partition at:
 Install GRUB for a 64-bit UEFI system:
 
 ```sh
-grub-install \
-    --target=x86_64-efi \
-    --efi-directory=/boot/efi \
-    --bootloader-id=GRUB
+grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=GRUB
 ```
 
 Generate the GRUB configuration:
@@ -356,6 +342,7 @@ swapoff -a
 Flush pending filesystem writes:
 
 ```sh
+sync
 sync
 ```
 
