@@ -2,16 +2,19 @@
 
 A minimal Arch Linux installation guide using GRUB and NetworkManager.
 
-This guide covers a basic installation with:
+This guide supports:
 
-- UEFI
-- GRUB
+- UEFI systems using GPT
+- legacy BIOS systems using MBR
 - ext4
 - a swap partition
+- GRUB
 - NetworkManager
-- an AMD or Intel CPU
+- AMD or Intel CPUs
 
 The commands are intended to be run from the Arch Linux installation environment unless stated otherwise.
+
+> **Warning:** Partitioning and formatting a drive will destroy existing data on the selected partitions. Verify the target drive before continuing.
 
 ## Keyboard and console font
 
@@ -33,6 +36,26 @@ Set the console font:
 setfont ter-132b
 ```
 
+## Check the boot mode
+
+Check whether the installation media was booted using UEFI:
+
+```sh
+cat /sys/firmware/efi/fw_platform_size
+```
+
+If the command returns:
+
+```text
+64
+```
+
+the system is booted using 64-bit UEFI.
+
+If `/sys/firmware/efi/fw_platform_size` does not exist, the system is normally booted using legacy BIOS mode.
+
+This guide does not cover 32-bit UEFI systems.
+
 ## Identify the drive
 
 List available block devices:
@@ -41,7 +64,7 @@ List available block devices:
 lsblk
 ```
 
-The examples in this guide use:
+The examples below use:
 
 ```text
 /dev/sdX
@@ -49,13 +72,13 @@ The examples in this guide use:
 
 Replace this with the correct drive for your system.
 
-For example, an NVMe drive may appear as:
+An NVMe drive may instead appear as:
 
 ```text
 /dev/nvme0n1
 ```
 
-Its partitions would then use names such as:
+with partitions such as:
 
 ```text
 /dev/nvme0n1p1
@@ -65,31 +88,50 @@ Its partitions would then use names such as:
 
 ## Partition the drive
 
-Open the target drive with `fdisk`:
+Open the target drive:
 
 ```sh
 fdisk /dev/sdX
 ```
 
-Create a GPT partition table with an example layout similar to:
+Choose the partition layout that matches your boot mode.
+
+### UEFI
+
+Use a GPT partition table.
+
+Example:
 
 ```text
 /dev/sdX1  EFI System        1 GiB
-/dev/sdX2  Linux swap        Size according to your needs
+/dev/sdX2  Linux swap        Same size as RAM, or larger if required for hibernation
 /dev/sdX3  Linux filesystem  Remaining space
 ```
 
-If you intend to use hibernation, make sure the swap configuration is large enough for your system.
+### Legacy BIOS
+
+Use an MBR/DOS partition table.
+
+Example:
+
+```text
+/dev/sdX1  Linux swap        Same size as RAM, or larger if required for hibernation
+/dev/sdX2  Linux filesystem  Remaining space
+```
+
+If you use GPT instead of MBR on a legacy BIOS system, GRUB requires a small BIOS boot partition. This guide uses MBR for the BIOS installation path to keep the setup simple.
 
 ## Format the partitions
 
-Format the root partition as ext4:
+### UEFI
+
+Format the root partition:
 
 ```sh
 mkfs.ext4 /dev/sdX3
 ```
 
-Initialize the swap partition:
+Initialize swap:
 
 ```sh
 mkswap /dev/sdX2
@@ -101,7 +143,25 @@ Format the EFI System Partition as FAT32:
 mkfs.fat -F 32 /dev/sdX1
 ```
 
+### Legacy BIOS
+
+Format the root partition:
+
+```sh
+mkfs.ext4 /dev/sdX2
+```
+
+Initialize swap:
+
+```sh
+mkswap /dev/sdX1
+```
+
+No EFI filesystem is required for a legacy BIOS installation.
+
 ## Mount the filesystems
+
+### UEFI
 
 Mount the root filesystem:
 
@@ -121,12 +181,36 @@ Enable swap:
 swapon /dev/sdX2
 ```
 
+### Legacy BIOS
+
+Mount the root filesystem:
+
+```sh
+mount /dev/sdX2 /mnt
+```
+
+Enable swap:
+
+```sh
+swapon /dev/sdX1
+```
+
 ## Install the base system
+
+### UEFI
 
 For an AMD CPU:
 
 ```sh
-pacstrap -K /mnt amd-ucode base base-devel efibootmgr grub linux linux-firmware networkmanager neovim sof-firmware
+pacstrap -K /mnt amd-ucode base base-devel efibootmgr grub linux linux-firmware networkmanager sof-firmware neovim
+```
+
+### Legacy BIOS
+
+For an AMD CPU:
+
+```sh
+pacstrap -K /mnt amd-ucode base base-devel grub linux linux-firmware networkmanager sof-firmware neovim
 ```
 
 For an Intel CPU, replace:
@@ -143,13 +227,13 @@ intel-ucode
 
 ## Generate fstab
 
-Generate `/etc/fstab` using filesystem UUIDs:
+Generate the filesystem table using UUIDs:
 
 ```sh
 genfstab -U /mnt >> /mnt/etc/fstab
 ```
 
-Review the generated file:
+Review it:
 
 ```sh
 cat /mnt/etc/fstab
@@ -187,7 +271,7 @@ hwclock --systohc
 
 ## Locale
 
-Open the locale configuration:
+Open:
 
 ```sh
 nvim /etc/locale.gen
@@ -201,13 +285,13 @@ For example:
 en_US.UTF-8 UTF-8
 ```
 
-Generate the locales:
+Generate the selected locales:
 
 ```sh
 locale-gen
 ```
 
-Create the locale configuration:
+Open:
 
 ```sh
 nvim /etc/locale.conf
@@ -227,13 +311,11 @@ Open:
 nvim /etc/vconsole.conf
 ```
 
-For a US keyboard:
+For example:
 
 ```text
 KEYMAP=us
 ```
-
-Use the appropriate console keymap if you use a different layout.
 
 ## Hostname
 
@@ -277,7 +359,7 @@ Replace `[username]` with the desired username.
 
 ## Configure sudo
 
-Open the sudoers file with `visudo`:
+Open the sudoers configuration:
 
 ```sh
 EDITOR=nvim visudo
@@ -289,11 +371,9 @@ Uncomment:
 %wheel ALL=(ALL:ALL) ALL
 ```
 
-This allows members of the `wheel` group to use `sudo`.
-
 ## Enable networking
 
-Enable NetworkManager at boot:
+Enable NetworkManager:
 
 ```sh
 systemctl enable NetworkManager
@@ -301,19 +381,47 @@ systemctl enable NetworkManager
 
 ## Install GRUB
 
-This guide mounts the EFI System Partition at:
+Choose the command that matches your boot mode.
+
+### UEFI
+
+The EFI System Partition should already be mounted at:
 
 ```text
 /boot/efi
 ```
 
-Install GRUB for a 64-bit UEFI system:
+Install GRUB:
 
 ```sh
 grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=GRUB
 ```
 
-Generate the GRUB configuration:
+### Legacy BIOS
+
+Install GRUB to the drive itself, not a partition:
+
+```sh
+grub-install --target=i386-pc /dev/sdX
+```
+
+For example:
+
+```text
+/dev/sda
+```
+
+not:
+
+```text
+/dev/sda1
+```
+
+The `i386-pc` target name is also used when installing GRUB for BIOS on an x86_64 Arch Linux system.
+
+### Generate the configuration
+
+For either boot mode:
 
 ```sh
 grub-mkconfig -o /boot/grub/grub.cfg
@@ -327,19 +435,13 @@ Exit the chroot:
 exit
 ```
 
-Unmount the installed system:
+Unmount the filesystems:
 
 ```sh
-umount -R /mnt
+umount -a
 ```
 
-Disable swap:
-
-```sh
-swapoff -a
-```
-
-Flush pending filesystem writes:
+Synchronize pending disk writes:
 
 ```sh
 sync
@@ -352,11 +454,11 @@ Reboot:
 reboot
 ```
 
-Remove the Arch Linux installation media when the machine begins rebooting.
+Remove the Arch Linux installation media when appropriate.
 
 ## Post-installation
 
-After booting into the new system, log in using the user account created during installation.
+After rebooting, log in using the user account created during installation.
 
 This guide intentionally stops at the base operating system installation. Desktop environments, window managers and other post-installation configuration are kept separate.
 
@@ -364,12 +466,13 @@ This guide intentionally stops at the base operating system installation. Deskto
 
 This guide was written independently using the official ArchWiki as a technical reference.
 
-Relevant ArchWiki documentation:
+Relevant documentation:
 
-- Installation guide
-- GRUB
-- NetworkManager
-- Microcode
+- [Installation guide](https://wiki.archlinux.org/title/Installation_guide)
+- [Partitioning](https://wiki.archlinux.org/title/Partitioning)
+- [GRUB](https://wiki.archlinux.org/title/GRUB)
+- [NetworkManager](https://wiki.archlinux.org/title/NetworkManager)
+- [Microcode](https://wiki.archlinux.org/title/Microcode)
 
 Arch Linux is a rolling-release distribution. Check the current ArchWiki before installing in case the official installation procedure has changed.
 
