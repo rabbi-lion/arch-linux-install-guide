@@ -1,8 +1,8 @@
 # Arch Linux Install Guide
 
-A simple Arch Linux installation guide.
+A short Arch Linux installation guide.
 
-This guide supports:
+Supports:
 
 - UEFI systems using GPT
 - legacy BIOS systems using MBR
@@ -12,17 +12,12 @@ This guide supports:
 - NetworkManager
 - AMD or Intel CPUs
 
-The commands are intended to be run from the Arch Linux installation environment unless stated otherwise.
+Commands are run from the Arch Linux installation environment unless
+stated otherwise.
 
 ## Keyboard and console font
 
 Load the desired console keymap:
-
-```sh
-loadkeys [keymap]
-```
-
-For example:
 
 ```sh
 loadkeys us
@@ -44,15 +39,15 @@ cat /sys/firmware/efi/fw_platform_size
 
 If the command returns:
 
-```text
+```
 64
 ```
 
 the system is booted using 64-bit UEFI.
 
-If `/sys/firmware/efi/fw_platform_size` does not exist, the system is normally booted using legacy BIOS mode.
-
-This guide does not cover 32-bit UEFI systems.
+If `/sys/firmware/efi/fw_platform_size` does not exist, the system
+is normally booted using legacy BIOS. This guide does not cover
+32-bit UEFI systems.
 
 ## Identify the drive
 
@@ -62,27 +57,11 @@ List available block devices:
 lsblk
 ```
 
-The examples below use:
+The examples below use `/dev/sdX`. Replace this with the correct
+drive for your system.
 
-```text
-/dev/sdX
-```
-
-Replace this with the correct drive for your system.
-
-An NVMe drive may instead appear as:
-
-```text
-/dev/nvme0n1
-```
-
-with partitions such as:
-
-```text
-/dev/nvme0n1p1
-/dev/nvme0n1p2
-/dev/nvme0n1p3
-```
+An NVMe drive appears as `/dev/nvme0n1`, with partitions such as
+`/dev/nvme0n1p1`, `/dev/nvme0n1p2`, and `/dev/nvme0n1p3`.
 
 ## Partition the drive
 
@@ -92,17 +71,15 @@ Open the target drive:
 fdisk /dev/sdX
 ```
 
-Choose the partition layout that matches your boot mode.
+Choose the layout that matches your boot mode.
 
 ### UEFI
 
 Use a GPT partition table.
 
-Example:
-
-```text
+```
 /dev/sdX1  EFI System        1 GiB
-/dev/sdX2  Linux swap        Same size as RAM, or larger if required for hibernation
+/dev/sdX2  Linux swap        Same size as RAM, or larger for hibernation
 /dev/sdX3  Linux filesystem  Remaining space
 ```
 
@@ -110,48 +87,29 @@ Example:
 
 Use an MBR/DOS partition table.
 
-Example:
-
-```text
-/dev/sdX1  Linux swap        Same size as RAM, or larger if required for hibernation
+```
+/dev/sdX1  Linux swap        Same size as RAM, or larger for hibernation
 /dev/sdX2  Linux filesystem  Remaining space
 ```
 
-If you use GPT instead of MBR on a legacy BIOS system, GRUB requires a small BIOS boot partition. This guide uses MBR for the BIOS installation path to keep the setup simple.
+If you use GPT instead of MBR on a legacy BIOS system, GRUB requires
+a small BIOS boot partition. This guide uses MBR for the BIOS path
+to keep the setup simple.
 
 ## Format the partitions
 
 ### UEFI
 
-Format the root partition:
-
 ```sh
 mkfs.ext4 /dev/sdX3
-```
-
-Initialize swap:
-
-```sh
 mkswap /dev/sdX2
-```
-
-Format the EFI System Partition as FAT32:
-
-```sh
 mkfs.fat -F 32 /dev/sdX1
 ```
 
 ### Legacy BIOS
 
-Format the root partition:
-
 ```sh
 mkfs.ext4 /dev/sdX2
-```
-
-Initialize swap:
-
-```sh
 mkswap /dev/sdX1
 ```
 
@@ -161,35 +119,16 @@ No EFI filesystem is required for a legacy BIOS installation.
 
 ### UEFI
 
-Mount the root filesystem:
-
 ```sh
 mount /dev/sdX3 /mnt
-```
-
-Mount the EFI System Partition:
-
-```sh
 mount --mkdir /dev/sdX1 /mnt/boot/efi
-```
-
-Enable swap:
-
-```sh
 swapon /dev/sdX2
 ```
 
 ### Legacy BIOS
 
-Mount the root filesystem:
-
 ```sh
 mount /dev/sdX2 /mnt
-```
-
-Enable swap:
-
-```sh
 swapon /dev/sdX1
 ```
 
@@ -200,7 +139,8 @@ swapon /dev/sdX1
 For an AMD CPU:
 
 ```sh
-pacstrap -K /mnt amd-ucode base base-devel efibootmgr grub linux linux-firmware networkmanager sof-firmware neovim
+pacstrap -K /mnt amd-ucode base base-devel efibootmgr grub linux \
+    linux-firmware networkmanager sof-firmware neovim
 ```
 
 ### Legacy BIOS
@@ -208,24 +148,13 @@ pacstrap -K /mnt amd-ucode base base-devel efibootmgr grub linux linux-firmware 
 For an AMD CPU:
 
 ```sh
-pacstrap -K /mnt amd-ucode base base-devel grub linux linux-firmware networkmanager sof-firmware neovim
+pacstrap -K /mnt amd-ucode base base-devel grub linux \
+    linux-firmware networkmanager sof-firmware neovim
 ```
 
-For an Intel CPU, replace:
-
-```text
-amd-ucode
-```
-
-with:
-
-```text
-intel-ucode
-```
+For an Intel CPU, replace `amd-ucode` with `intel-ucode`.
 
 ## Generate fstab
-
-Generate the filesystem table using UUIDs:
 
 ```sh
 genfstab -U /mnt >> /mnt/etc/fstab
@@ -239,8 +168,6 @@ cat /mnt/etc/fstab
 
 ## Enter the installed system
 
-Change root into the new installation:
-
 ```sh
 arch-chroot -S /mnt
 ```
@@ -249,17 +176,11 @@ The following commands are run inside the chroot.
 
 ## Time zone
 
-Set the time zone:
-
-```sh
-ln -sf /usr/share/zoneinfo/Area/Location /etc/localtime
-```
-
-For example:
-
 ```sh
 ln -sf /usr/share/zoneinfo/Europe/Zagreb /etc/localtime
 ```
+
+Adjust the region and city as needed.
 
 Synchronize the hardware clock:
 
@@ -275,15 +196,13 @@ Open:
 nvim /etc/locale.gen
 ```
 
-Uncomment the UTF-8 locales you want to use.
+Uncomment the UTF-8 locales you want, for example:
 
-For example:
-
-```text
+```
 en_US.UTF-8 UTF-8
 ```
 
-Generate the selected locales:
+Generate them:
 
 ```sh
 locale-gen
@@ -297,7 +216,7 @@ nvim /etc/locale.conf
 
 For example:
 
-```text
+```
 LANG=en_US.UTF-8
 ```
 
@@ -311,7 +230,7 @@ nvim /etc/vconsole.conf
 
 For example:
 
-```text
+```
 KEYMAP=us
 ```
 
@@ -323,17 +242,9 @@ Open:
 nvim /etc/hostname
 ```
 
-Enter the desired hostname.
-
-For example:
-
-```text
-arch
-```
+Enter the desired hostname, for example `arch`.
 
 ## Root password
-
-Set the root password:
 
 ```sh
 passwd
@@ -353,11 +264,7 @@ Set the user's password:
 passwd [username]
 ```
 
-Replace `[username]` with the desired username.
-
 ## Configure sudo
-
-Open the sudoers configuration:
 
 ```sh
 EDITOR=nvim visudo
@@ -365,13 +272,11 @@ EDITOR=nvim visudo
 
 Uncomment:
 
-```text
+```
 %wheel ALL=(ALL:ALL) ALL
 ```
 
 ## Enable networking
-
-Enable NetworkManager:
 
 ```sh
 systemctl enable NetworkManager
@@ -383,16 +288,11 @@ Choose the command that matches your boot mode.
 
 ### UEFI
 
-The EFI System Partition should already be mounted at:
-
-```text
-/boot/efi
-```
-
-Install GRUB:
+The EFI System Partition should already be mounted at `/boot/efi`.
 
 ```sh
-grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=GRUB
+grub-install --target=x86_64-efi --efi-directory=/boot/efi \
+    --bootloader-id=GRUB
 ```
 
 ### Legacy BIOS
@@ -403,19 +303,10 @@ Install GRUB to the drive itself, not a partition:
 grub-install --target=i386-pc /dev/sdX
 ```
 
-For example:
+Use `/dev/sda`, not `/dev/sda1`.
 
-```text
-/dev/sda
-```
-
-not:
-
-```text
-/dev/sda1
-```
-
-The `i386-pc` target name is also used when installing GRUB for BIOS on an x86_64 Arch Linux system.
+The `i386-pc` target name is also used when installing GRUB for BIOS
+on an x86_64 Arch Linux system.
 
 ### Generate the configuration
 
@@ -439,16 +330,10 @@ Unmount the filesystems:
 umount -a
 ```
 
-Synchronize pending disk writes:
+Synchronize pending disk writes and reboot:
 
 ```sh
 sync
-sync
-```
-
-Reboot:
-
-```sh
 reboot
 ```
 
@@ -456,15 +341,16 @@ Remove the Arch Linux installation media when appropriate.
 
 ## Post-installation
 
-After rebooting, log in using the user account created during installation.
+After rebooting, log in using the user account created during
+installation.
 
-This guide intentionally stops at the base operating system installation. Desktop environments, window managers and other post-installation configuration are kept separate.
+This guide stops at the base operating system installation. Desktop
+environments, window managers, and other post-installation
+configuration are kept separate.
 
 ## References
 
-This guide was written independently using the official ArchWiki as a technical reference.
-
-Relevant documentation:
+Written using the official ArchWiki as a technical reference:
 
 - [Installation guide](https://wiki.archlinux.org/title/Installation_guide)
 - [Partitioning](https://wiki.archlinux.org/title/Partitioning)
@@ -472,14 +358,15 @@ Relevant documentation:
 - [NetworkManager](https://wiki.archlinux.org/title/NetworkManager)
 - [Microcode](https://wiki.archlinux.org/title/Microcode)
 
-Arch Linux is a rolling-release distribution. Check the current ArchWiki before installing in case the official installation procedure has changed.
+Arch Linux is rolling-release. Check the current ArchWiki before
+installing, in case the official installation procedure has changed.
 
 ## License
 
 Made by rabbi-lion.
 
-Original text in this repository is licensed under the Creative Commons Attribution-ShareAlike 4.0 International License.
+Original text in this repository is licensed under the Creative
+Commons Attribution-ShareAlike 4.0 International License.
 
-Referenced projects and documentation retain their respective licenses.
-
-See `LICENSE` for the full license text.
+Referenced projects and documentation retain their respective
+licenses. See `LICENSE` for the full license text.
