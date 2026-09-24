@@ -1,6 +1,6 @@
 # Arch Linux Install Guide
 
-A short Arch Linux installation guide.
+A simple Arch Linux installation guide.
 
 Supports:
 
